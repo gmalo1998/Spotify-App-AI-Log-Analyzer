@@ -112,24 +112,118 @@ A full-stack Spotify Clone application built with the MERN stack (MongoDB, Expre
 
 ```
 spotify-clone/
-├── backend/
-│   └── src/
-│       ├── controllers/
-│       ├── lib/
-│       ├── middleware/
-│       ├── models/
-│       ├── routes/
-│       └── seeds/
-└── frontend/
-    ├── public/
-    └── src/
-        ├── components/
-        ├── layout/
-        ├── lib/
-        ├── pages/
-        ├── providers/
-        ├── stores/
-        └── types/
+│
+├── .github/
+│   └── workflows/
+│       ├── terraform-ci.yml
+│       ├── terraform-plan.yml
+│       ├── terraform-apply.yml
+│       ├── terraform-ai-drift.yml      # [NEW] Scheduled AI Drift Detection
+│       │
+│       ├── application-ci.yml          
+│       ├── application-cd-dev.yml
+│       ├── application-cd-qa.yml
+│       ├── application-cd-prod.yml
+│       │
+│       └── reusable-deploy.yml
+│
+├── terraform/
+│   ├── bootstrap/
+│   │   ├── main.tf
+│   │   ├── variables.tf
+│   │   └── outputs.tf
+│   │
+│   ├── environments/
+│   │   ├── dev/
+│   │   │   ├── main.tf
+│   │   │   ├── providers.tf
+│   │   │   ├── backend.tf
+│   │   │   ├── variables.tf
+│   │   │   └── terraform.tfvars
+│   │   │
+│   │   ├── qa/
+│   │   │   ├── main.tf
+│   │   │   ├── providers.tf
+│   │   │   ├── backend.tf
+│   │   │   ├── variables.tf
+│   │   │   └── terraform.tfvars
+│   │   │
+│   │   └── prod/
+│   │       ├── main.tf
+│   │       ├── providers.tf
+│   │       ├── backend.tf
+│   │       ├── variables.tf
+│   │       └── terraform.tfvars
+│   │
+│   └── modules/
+│       ├── vpc/
+│       ├── eks/
+│       ├── ec2/
+│       ├── s3-cloudfront/             
+│       ├── iam/
+│       ├── security-groups/
+│       └── monitoring/
+│
+├── application/
+│   ├── backend/
+│   │   ├── src/
+│   │   │   ├── controllers/
+│   │   │   ├── lib/
+│   │   │   ├── middleware/
+│   │   │   ├── models/
+│   │   │   ├── routes/
+│   │   │   └── seeds/
+│   │   ├── package.json                
+│   │   ├── .dockerignore
+│   │   └── Dockerfile
+│   │
+│   ├── frontend/
+│   │   ├── public/
+│   │   ├── src/
+│   │   │   ├── components/
+│   │   │   ├── layout/
+│   │   │   ├── lib/
+│   │   │   ├── pages/
+│   │   │   ├── providers/
+│   │   │   ├── stores/
+│   │   │   └── types/
+│   │   ├── package.json
+│   │   ├── .dockerignore
+│   │   └── Dockerfile
+│   │
+│   └── docker-compose.yml              # [NEW] Local 3-tier dev & testing
+│
+├── ai-ops/                             # [NEW] AI Implementation Layer
+│   ├── log-analyzer/
+│   │   ├── analyzer.py                 # Pod/App error log -> Gemini API -> Slack RCA
+│   │   ├── requirements.txt
+│   │   └── Dockerfile
+│   │
+│   └── drift-detector/
+│       ├── drift_analyzer.py           # Terraform plan diff -> Gemini API -> Risk summary
+│       └── requirements.txt
+│
+├── helm-charts/
+│   └── spotify-clone/                  
+│       ├── Chart.yaml
+│       ├── values.yaml
+│       ├── values-dev.yaml
+│       ├── values-qa.yaml
+│       ├── values-prod.yaml
+│       └── templates/
+│
+├── argocd/
+│   ├── dev-app.yaml
+│   ├── qa-app.yaml
+│   └── prod-app.yaml
+│
+├── scripts/
+│   ├── terraform-validation.sh
+│   ├── docker-build.sh
+│   └── deployment-verification.sh
+│
+├── README.md
+└── .gitignore
 ```
 
 ## Getting Started
