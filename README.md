@@ -6,7 +6,7 @@
 
 A full-stack Spotify Clone application built with the MERN stack (MongoDB, Express, React, Node.js). This project serves as a learning ground for modern web technologies including React 19, Express 5, and real-time data handling.
 
-**Project Status:** This project is complete as of January 25, 2026. All core requirements have been met.
+**Project Status:** This project is working in progress. All core requirements have been met.
 
 ## ✅ Core Features
 
@@ -274,7 +274,7 @@ spotify-clone/
 ## Version History
 
 ### `v1.0.0` - Project Completion
-- **Date:** January 25, 2026
+- **Date:** Started on Nov 23rd 2026
 - **Status:** Final project completion. All core requirements met.
 
 ## Acknowledgments
