@@ -1,0 +1,29 @@
+
+name: CD - QA
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Existing ECR image tag (Git commit SHA)"
+        required: true
+        type: string
+
+      release_branch:
+        description: "Release branch, for example release/v1.0.0"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-qa:
+    uses: ./.github/workflows/reusable-gitops-promote.yml
+
+    with:
+      environment: qa
+      image_tag: ${{ inputs.image_tag }}
+      git_ref: ${{ inputs.release_branch }}
+
+    secrets: inherit

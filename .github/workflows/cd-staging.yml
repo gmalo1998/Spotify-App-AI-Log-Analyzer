@@ -1,0 +1,29 @@
+
+name: CD - Staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Same ECR image SHA already validated in QA"
+        required: true
+        type: string
+
+      release_branch:
+        description: "Release branch, for example release/v1.0.0"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-staging:
+    uses: ./.github/workflows/reusable-gitops-promote.yml
+
+    with:
+      environment: staging
+      image_tag: ${{ inputs.image_tag }}
+      git_ref: ${{ inputs.release_branch }}
+
+    secrets: inherit
