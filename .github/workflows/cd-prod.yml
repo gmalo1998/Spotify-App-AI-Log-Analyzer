@@ -1,0 +1,21 @@
+
+name: CD - Production
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-production:
+    uses: ./.github/workflows/reusable-gitops-promote.yml
+
+    with:
+      environment: prod
+      image_tag: ${{ github.sha }}
+      git_ref: main
+
+    secrets: inherit

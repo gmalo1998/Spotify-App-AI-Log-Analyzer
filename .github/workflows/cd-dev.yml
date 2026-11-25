@@ -1,0 +1,26 @@
+
+name: CD - Development
+
+on:
+  workflow_run:
+    workflows: ["CI Pipeline"]
+    types:
+      - completed
+    branches:
+      - develop
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-dev:
+    if: github.event.workflow_run.conclusion == 'success'
+
+    uses: ./.github/workflows/reusable-gitops-promote.yml
+
+    with:
+      environment: dev
+      image_tag: ${{ github.event.workflow_run.head_sha }}
+      git_ref: develop
+
+    secrets: inherit

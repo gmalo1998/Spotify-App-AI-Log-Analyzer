@@ -1,0 +1,124 @@
+
+name: CI Pipeline
+
+on:
+  pull_request:
+    branches:
+      - develop
+      - 'release/**'
+    paths-ignore:
+      - 'helm-charts/ecommerce-app/environments/**'
+
+  push:
+    branches:
+      - develop
+      - 'release/**'
+    paths-ignore:
+      - 'helm-charts/ecommerce-app/environments/**'
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  AWS_REGION: ap-south-1
+  AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
+
+jobs:
+
+  # 1. Application tests and code quality
+  quality:
+    name: Test and Code Quality
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      # Adjust this command to your actual backend build tool.
+      - name: Backend unit tests
+        run: |
+          cd backend
+          ./mvnw test
+
+      - name: SonarQube analysis
+        uses: SonarSource/sonarqube-scan-action@v5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
+
+      - name: SonarQube Quality Gate
+        uses: SonarSource/sonarqube-quality-gate-action@v1
+        timeout-minutes: 5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+  # 2. Build, scan and push Docker images
+  build-scan-push:
+    name: Build, Scan and Push ${{ matrix.service }}
+    needs: quality
+
+    # Do not publish images for pull requests.
+    if: github.event_name == 'push'
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - service: backend
+            context: ./backend
+            dockerfile: ./backend/Dockerfile
+            repository: ecomm-three-tier-backend
+
+          - service: frontend
+            context: ./frontend
+            dockerfile: ./frontend/Dockerfile
+            repository: ecomm-three-tier-frontend
+
+          - service: ai-service
+            context: ./ai-service
+            dockerfile: ./ai-service/Dockerfile
+            repository: ecomm-three-tier-ai-service
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      # Authenticate to AWS using GitHub OIDC.
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # Use the commit SHA as the immutable image version.
+      - name: Build Docker image
+        run: |
+          IMAGE="${{ steps.ecr.outputs.registry }}/${{ matrix.repository }}:${GITHUB_SHA}"
+
+          docker build \
+            -f "${{ matrix.dockerfile }}" \
+            -t "$IMAGE" \
+            "${{ matrix.context }}"
+
+          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
+
+      # Fail the pipeline for HIGH or CRITICAL vulnerabilities.
+      - name: Trivy image security scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ env.IMAGE }}
+          format: table
+          severity: HIGH,CRITICAL
+          exit-code: '1'
+
+      # Push only after the security scan passes.
+      - name: Push image to ECR
+        run: |
+          docker push "$IMAGE"

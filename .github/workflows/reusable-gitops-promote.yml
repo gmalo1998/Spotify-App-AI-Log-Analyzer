@@ -1,0 +1,85 @@
+
+name: Reusable GitOps Promotion
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+
+      image_tag:
+        required: true
+        type: string
+
+      git_ref:
+        required: true
+        type: string
+
+    secrets:
+      GITOPS_TOKEN:
+        required: true
+
+jobs:
+  update-helm-values:
+    name: Update ${{ inputs.environment }} image versions
+    runs-on: ubuntu-latest
+
+    # Configure required reviewers on these GitHub Environments.
+    environment: ${{ inputs.environment }}
+
+    steps:
+      - name: Checkout GitOps configuration
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.git_ref }}
+          token: ${{ secrets.GITOPS_TOKEN }}
+
+      - name: Install PyYAML
+        run: pip install pyyaml
+
+      - name: Update image tags
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+          IMAGE_TAG: ${{ inputs.image_tag }}
+        run: |
+          python - <<'PY'
+          import os
+          import yaml
+
+          env = os.environ["ENVIRONMENT"]
+          tag = os.environ["IMAGE_TAG"]
+
+          path = f"helm-charts/ecommerce-app/environments/{env}.yaml"
+
+          with open(path, "r") as f:
+              values = yaml.safe_load(f)
+
+          # Expected Helm values structure:
+          # backend.image.tag
+          # frontend.image.tag
+          # aiService.image.tag
+
+          for service in ["backend", "frontend", "aiService"]:
+              values[service]["image"]["tag"] = tag
+
+          with open(path, "w") as f:
+              yaml.safe_dump(values, f, sort_keys=False)
+
+          print(f"Updated {env} to image tag {tag}")
+          PY
+
+      - name: Commit and push GitOps change
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add helm-charts/ecommerce-app/environments/
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+
+          git commit -m "deploy: promote ${{ inputs.image_tag }} to ${{ inputs.environment }}"
+          git push origin HEAD:${{ inputs.git_ref }}
